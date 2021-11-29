@@ -1,0 +1,73 @@
+#+TITLE: Chapter 2: Two-State Economy
+
+The analysis of this chapter is based on the most simple model economy that is still rich enough to introduce many important notions and concepts of finance: an economy with two relevant points in time and two uncertain future states only. It also allows us to present some important results in the field, like the Fundamental Theorems of Asset Pricing.
+
+| Finance                               | Mathematics                                  | Python                           |
+|---------------------------------------+----------------------------------------------+----------------------------------|
+| Time                                  | Natural Numbers N                            | int, type                        |
+| Money (Currency)                      | Real Numbers R                               | float                            |
+| Cash Flow                             | Tuple                                        | tuple, list                      |
+| Return, Interest                      | Real Numbers R                               | abs                              |
+| Net Present Value                     | Function                                     | def, return                      |
+| Uncertainty                           | Vector Space R^2                             | np, ndarray, np.array            |
+| Financial Asset                       | Process                                      | ndarray, tuple                   |
+| Risk                                  | Probability, State Space, Power Set, Mapping | ndarray                          |
+| Expectation, Expected Return          | dot product                                  | np.dot                           |
+| Volatility                            | Variance, Standard Deviation                 | np.sqrt                          |
+| Contingent Claims                     | Random Variable                              | np.arange, np.maximum, plt.plot  |
+| Replication, Arbitrage                | Linear Equations, Matrix Form                | ndarray, np.linalg.solve, np.dot |
+| Completeness, Arrow-Debreu Securities | Linear Independence, Span                    | np.linalg.solve                  |
+| Martingale Pricing                    | Martingale, Martingale Measure               | np.dot                           |
+| Mean-Variance                         | Expectation, Variance, Standard Deviation    | np.linspace, .std(), list comp   |
+
+* Economy
+
+An economy is an abstract notion that subsumes other elements of the financial model, like assets (real, financial), agents (people, institutions), or money.
+
+** Real Assets
+
+Multiple real assets are available in the economy that can be used for different purposes. It might be a machine or a cup
+
+** Agents
+
+Agents can be thought of as individual human beings being active in the economy. They accept money during transactions and spend it during others.
+
+** Time
+
+Economic activity takes place at discrete points in time only.
+
+** Money
+
+In the economy, money is available in unlimited supply. Money is also infinitely divisible. Money should be thought of in abstract terms only and not in terms of cash (physical coins or bills).
+
+Money in general serves as the *numeraiare* in the economy, in that the value of one unit of money (like USD, EUR, GBP, etc) is normalized to exactly 1.
+
+** Cash Flow
+
+Combining time with currency leads to the notion of cash flow. An investment is generally considered to be a *cash outflow*, and one often represents this as a negative real number. The payback is a *cash inflow* and therewith a positive real number.
+
+To indicate points in time when cash flows happen, a time index is used: $c_{t=0} = -9.5$, $c_{t=1}=11.75$
+
+A pair of cash flows now and one year from now is modeled mathematically as an ordered pair or two-tuple which combines the two relevant cash flows into one object:
+
+$c = (c_0, c_1)$
+
+** Return
+
+Consider an investment project with cash flows $c = (c_0, c_1) = (-10, 12)$.
+The return $R \in \mathcal{R}$ of the project is the sum of the cash flows $c_0 + c_1 = -10 + 12 = 2$.
+The rate of return $r \in \mathcal{R}$ is the return divided by the absolute value of the investment outlay $r = \frac{R}{|c_0|} = \frac{-10 + 12}{10} = 0.2$
+
+#+begin_src python
+c = (-10, 12)
+R = sum(c)
+R
+r = R / abs(c[0])
+r
+#+end_src
+
+** Interest
+
+There is a difference between a cash flow today and a cash flow in one year. It results from interest that is being earned on currency units or that has to be paid to borrow currency units. Interest in this context is the price being paid for having control over money that belongs to another agent.
+
+An agent that has currency units that they do not need today can deposit these with a ban

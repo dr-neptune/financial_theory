@@ -83,9 +83,6 @@ $c_0 = D(c_1) = \frac{c_1}{1 + i}$
 
 #+begin_src python
 from typing import Union
-interest_rate = 0.1
-
-cf = (1, 2, 3)
 
 def discounted_cash_flow(cash_flow: Union[tuple, float], interest_rate: float) -> float:
     float_num = type(cash_flow) == float
@@ -94,12 +91,8 @@ def discounted_cash_flow(cash_flow: Union[tuple, float], interest_rate: float) -
     return last_cash_flow / ((1 + interest_rate) ** num_years)
 
 discounted_cash_flow(cf, 0.1)
-
-type(tuple(12.1))
-
 discounted_cash_flow(12.1, 0.1)
 discounted_cash_flow(11.0, 0.1)
-
 discounted_cash_flow((1, 2, 3, 4, 5), 0.1)
 #+end_src
 

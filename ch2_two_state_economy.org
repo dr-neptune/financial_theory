@@ -70,4 +70,37 @@ r
 
 There is a difference between a cash flow today and a cash flow in one year. It results from interest that is being earned on currency units or that has to be paid to borrow currency units. Interest in this context is the price being paid for having control over money that belongs to another agent.
 
-An agent that has currency units that they do not need today can deposit these with a ban
+An agent that has currency units that they do not need today can deposit these with a bank or lend them to another agent to earn interest. If the agent needs more currency units than they currently have available, they can borrow them from a bank or other agents, but they will need to pay interest.
+
+** Present Value
+
+Having lending or depositing options available leads to opportunity costs for deployign money in an investment project.
+To appropriately compare cash flows in one year with those of today, the present value needs to be calculated. This is accomplished by discounting using the fixed interest rate in the economy.
+
+Discounting can be modeled as a function $D:\mathcal{R} \to \mathcal{R}$ which maps a real number (cash flow in one year) to another real number (cash flow today).
+
+$c_0 = D(c_1) = \frac{c_1}{1 + i}$
+
+#+begin_src python
+from typing import Union
+interest_rate = 0.1
+
+cf = (1, 2, 3)
+
+def discounted_cash_flow(cash_flow: Union[tuple, float], interest_rate: float) -> float:
+    float_num = type(cash_flow) == float
+    last_cash_flow = cash_flow if float_num else cash_flow[-1]
+    num_years = 1 if float_num else len(cash_flow) - 1
+    return last_cash_flow / ((1 + interest_rate) ** num_years)
+
+discounted_cash_flow(cf, 0.1)
+
+type(tuple(12.1))
+
+discounted_cash_flow(12.1, 0.1)
+discounted_cash_flow(11.0, 0.1)
+
+discounted_cash_flow((1, 2, 3, 4, 5), 0.1)
+#+end_src
+
+** Net Present Value

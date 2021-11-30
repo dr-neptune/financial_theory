@@ -90,10 +90,31 @@ def discounted_cash_flow(cash_flow: Union[tuple, float], interest_rate: float) -
     num_years = 1 if float_num else len(cash_flow) - 1
     return last_cash_flow / ((1 + interest_rate) ** num_years)
 
-discounted_cash_flow(cf, 0.1)
 discounted_cash_flow(12.1, 0.1)
 discounted_cash_flow(11.0, 0.1)
 discounted_cash_flow((1, 2, 3, 4, 5), 0.1)
 #+end_src
 
 ** Net Present Value
+
+How shall an agent decide whether to conduct an investment project or not? One criterion is the net present value.
+The net present value, NPV $\in \mathcal{R}$, is the sum of the cash outflow today and the present value of the cash inflow in one year:
+
+$NPV(c) = c_0 + D(c_1)$
+
+If the net present value is positive, the project should be conducted. If negative, then not, since the alternative of just depositing the money with a bank is more attractive.
+
+#+begin_src python
+from typing import Tuple
+
+cA = (-10.5, 12.1)
+cB = (-10.5, 11.0)
+
+def NPV(c: Tuple[float, float], interest_rate: float) -> float:
+    return c[0] + discounted_cash_flow(c[-1], interest_rate)
+
+NPV(cA, 0.1)
+NPV(cB, 0.1)
+#+end_src
+
+** Uncertainty

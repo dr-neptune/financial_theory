@@ -118,3 +118,132 @@ NPV(cB, 0.1)
 #+end_src
 
 ** Uncertainty
+
+Cash inflows from an investment project one year from now are in general uncertain. In the model economy, the concept of states of the economy in one year subsumes the influence of all relevant factors. Assume that in one year the economy might be in one of two different states $u$ and $d$, which might be interpreted as up and down. The cash flow of a project in one year then becomes a vector
+
+$c_1 \in \mathbb{R}^2$ where $c_1 = (c_1^u, c_1^d)$
+
+representing the relevant cash flows per state of the economy. Formally this is represented as a column vector
+
+$c_1 = {c_1^u \choose c_1^d}$
+
+#+begin_src python
+import numpy as np
+
+c0 = -10
+c1 = np.array((20, 5))
+c = (c0, c1)
+#+end_src
+
+** Financial Assets
+
+Financial assets are financial instruments ("contracts") that have a fixed price today and an uncertain price in one year.
+Such a share might be available at a price today of $S_0 \in \mathbb{R}_{>0}$. The price of the share in one year depends on the success of the investment project, i.e., whether a high cash inflow is observed in the u state or a low one in the d state. Formally, $S_1^u, S_1^d \in \mathbb{R}_{\geq 0}$ where $S_1^u > S_1^d$.
+
+One speaks also of the price process of the financial asset $S:\mathbb{N}_0 \cross \{u, d\} \to \mathbb{R}_{\geq 0}$ mapping time and state of the economy to the price of the financial asset.
+
+** Probability Measure
+
+The probabilities for events that are physically possible together form a probability measure. Such a probability measure is a function $P:\mathcal{P}(\{u, d\}) \to \mathbb{R}_{\geq 0}$ mapping all elements of the power set of $\{u, d\}$ with $\mathcal{P}(\{u, d\})$ to the unit interval.
+In this context, the set $\{u, d\}$ is called the state space and is symbolized by $\Omega$. The triple $(\Omega, \mathcal{P}(\Omega), P)$ is called a probability space.
+
+A function P representing a probability measure needs to satisfy 3 conditions:
+
+1. $P(\emptyset) = 0$
+2. $0 \leq P(\omega), \omega \in \Omega \leq 1$
+3. $P(\Omega) = P(u) + P(d) = 1$
+
+Having a fully specified probability measure available, the model economy is typically called an economy under risk.
+A model economy without a fully specified probability measure is often called an economy under ambiguity
+
+Uncertainty in a financial context can take on different forms. Risk in general refers to a situation in which a full probability distribution over future states of the economy is assumed to be known. Ambiguity refers to situations in which such a distribution is not known.
+
+#+begin_src python
+p = 0.4
+P = np.array((p, 1-p))
+P
+#+end_src
+
+** Expectation
+
+The expectation can be interpreted as the weighted average, where the weights are given by the probabilities.
+The expectation of the uncertain price $S_1$ in one year under probability measure $P$ is
+
+$\mathbb{E}^p(S_1) = \Sigma_{\omega \in \Omega} P(\omega) \cdot S_1^{\omega} = p \cdot S_1^u + (1 - p) \cdot S_1^d$
+
+#+begin_src python
+S0 = 10
+S1 = np.array((20, 5))
+np.dot(P, S1)
+#+end_src
+
+** Expected Return
+
+Under uncertainty, the notions of return and rate of return need to be adjusted. In such a case, the expected return of a financial asset is given as the expectation of the price in one year minus the price today. This can be seen by taking the expectation of the uncertain return $R = (R^u, R^d)^T$ and rearranging as follows:
+
+$\mathbb{E}^p(R) = ({p \choose 1 - p}, {R^u \choose R^d}) = ({p \choose 1 - p}, {S_1^u - S_0 \choose S_1^d - S_0}) = p \cdot (S_1^u - S_0) + (1 - p) \cdot (S_1^d - S_0) = \mathbb{E}^p(S_1) - S_0$
+
+The expected rate of return is the expected return divided by the price today
+
+$\mathbb{E}^P(r) = \frac{\mathbb{E}^P(R)}{S_0}$
+
+#+begin_src python
+def expected_return(initial_price: float, probabilities: np.array, upside_downside: np.array) -> float:
+    return np.dot(probabilities, upside_downside) - initial_price
+
+
+def expected_rate_of_return(initial_price: float, expected_return: float) -> float:
+    return expected_return / initial_price
+
+
+S0 = 10
+p = 0.4
+P = np.array((p, 1 - p))
+S1 = np.array((20, 5))
+er = expected_return(S0, P, S1)
+err = expected_rate_of_return(S0, er)
+er
+err
+#+end_src
+
+** Volatility
+
+In finance, risk and expected return are the dominating pair of concepts. Risk can be measured in many ways, while the volatility as measured by the standard deviation of the rates of return is probability the most common measure.
+
+In this context, the variance of the return rates of a financial aspect is defined by
+
+$\sigma^2(r) = \mathbb{E}^p((r - \mu)^2) = ({p \choose 1 - p}, {(r^u - \mu)^2 \choose (r^d - \mu)^2})$
+
+where $\mu$ is the expected rate of return, and $r^\omega \equiv (S_1^\omega - S_0) / S_0, \omega \in \Omega$.
+
+The volatility is defined as the standard deviation of the return rates, which is the square root of the variance
+
+$\sigma(r) = \sqrt{\sigma^2(r)}$
+
+#+begin_src python
+def rate_of_return(x0: np.array, x1: np.array) -> float:
+    return (x1 - x0) / x0
+
+rate_of_return(S0, S1)
+
+mu = np.dot(P, rate_of_return(S0, S1))
+mu
+
+def sigma_squared(probability_measure: np.array, rate_of_return: float, expected_rate_of_return: float) -> float:
+    return np.dot(probability_measure, (rate_of_return - expected_rate_of_return) ** 2)
+
+ss = sigma_squared(P, rate_of_return(S0, S1), mu)
+ss
+
+sigma = np.sqrt(ss)
+sigma
+#+end_src
+
+** Contingent Claims
+
+A *contingent claim* is a financial asset - formalized by some contract - that offers a state-contingent payoff one year from now.
+Such a contingent claim can have an arbitrary state-contingent payoff or one that is derived from the payoff of other financial assets.
+
+In the latter case, one generally speaks of *derivative assets* or *derivative instruments*
+
+Formally, a contingent claim is a function $C_1: \Omega \to \mathbb{R}_{\geq 0}, \omega \to C_1(\omega)$, mapping events to non-negative real numbers.

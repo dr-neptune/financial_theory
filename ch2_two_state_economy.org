@@ -247,3 +247,66 @@ Such a contingent claim can have an arbitrary state-contingent payoff or one tha
 In the latter case, one generally speaks of *derivative assets* or *derivative instruments*
 
 Formally, a contingent claim is a function $C_1: \Omega \to \mathbb{R}_{\geq 0}, \omega \to C_1(\omega)$, mapping events to non-negative real numbers.
+
+Suppose we have a risky stock with the price process
+
+$S = (S_0, (S_1^u, S_1^d)^T)$
+
+A *call option* on the stock has a payoff in one year of $C_1(S_1(\omega)) = \max(S_1(\omega) - K, 0)$ and $\omega \in \Omega$. $K \in \mathbb{R}^+$ is called the strike price option.
+
+#+begin_src python
+# visualize the payoff of a call option on a segment of the real line
+S1 = np.random.normal(10, 2.5, 20)
+K = 10
+
+C1 = np.maximum(S1 - K, 0)
+
+from pylab import mpl, plt
+import matplotlib
+matplotlib.use('tkAgg')
+plt.style.use('seaborn')
+mpl.rcParams['savefig.dpi'] = 300
+mpl.rcParams['font.family'] = 'serif'
+
+plt.figure(figsize=(10, 6))
+plt.plot(np.arange(20), C1, lw=3.0, label='$C_1 = \max(S_1 - K, 0)$')
+plt.legend(loc=0)
+plt.xlabel('$S_1$')
+plt.ylabel('$C_1$')
+plt.show()
+#+end_src
+
+** Replication
+
+When introducing a contingent claim into the economy, an important question that arises is whether the payoff of the contingent claim is redundant or not.
+
+The payoff of the call option is said to be linearly dependent - or redundant - when a solution to the following problem exists:
+
+$b \cdot {B_1 \choose B_1} + s \cdot {S_1^u \choose S_1^d} = {C_1^u \choose C_1^d}$
+
+Essentially, if we have a linearly dependent system like above, we can buy/sell some amount of the bond / stock to replicate the payoff of the call option.
+
+Technically, *short selling* implies borrowing the respective number of units of the financial asset today from another agent and immediately selling the units in the market. In one year, the borrowing agent buys the exact number of units of the financial asset back in the market at the then-current price and transfers them back to the other agent.
+
+$\mathcal{M} =  \begin{pmatrix} B_1 & S_1^u\\ B_1 & S_1^d \end{pmatrix}$
+
+The future payoff vectors of the bond and the stock represent the values in the first and second column of the matrix, respectively.
+
+With these conventions, the replication problem can be represented in matrix form as
+
+$\mathcal{M} \cdot \phi = C_1$
+
+where $\phi \in \mathbb{R}^2$ is the vector containing the bond and stock portfolio positions for replication $\phi \equiv (b, s)^T \cdot \phi$ is usually simply called *portfolio* or *trading strategy*.
+
+$\begin{pmatrix} B_1 & S_1^u\\ B_1 & S_1^d \end{pmatrix} \cdot \begin{pmatrix} b\\ s \end{pmatrix} = \begin{pmatrix} C_1^u\\ C_1^d \end{pmatrix}$
+
+#+begin_src python
+B = (10, np.array((11, 11)))  # price process for the riskless bond
+S = (10, np.array((20, 5)))   # price process for the risky stock
+M = np.array((B[1], S[1])).T  # matrix with future payoff vectors
+K = 15                        # the strike price for the call option
+C1 = np.maximum(S[1] - K, 0)  # values for the payoff vector in one year
+phi = np.linalg.solve(M, C1)  # find the numerical values of the payoff vector, b and s
+#+end_src
+
+** Arbitrage Pricing

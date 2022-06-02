@@ -3,17 +3,17 @@
 
 As an example, we take the central concept of uncertainty in finance from the preceding table. Uncertainty embodies the notion that future states of a model economy are not known in advance. Which future state of the economy unfolds might be important, for example, to determine the payoff of a European call option.
 
-In the most simple case of two future states only, the payoff of a European call option is represented mathematically as a random variable, which in turn can be represented formally as a vector $v$ that is itself an element of the vector space $\mathcal{R}^2$.
-
-$v = {v^u \choose v^d} \in \mathcal{R}^2_{\geq 0}$
+In the most simple case of two future states only, the payoff of a European call option is represented mathematically as a random variable, which in turn can be represented formally as a vector $v$ that is itself an element of the vector space $\mathbb{R}^2$.
 
 More concretely, if the uncertain, state-dependent price of the stock on which the European call option is written is given in this context by
 
-$S = {20 \choose 5} \in \mathcal{R}^{2+}$
+$v = {v^u \choose v^d} \in \mathbb{R}^2_{\geq 0}$
+
+$S = {20 \choose 5} \in \mathbb{R}^{2+}$
 
 and the strike price of the option is $K = 15$, the payoff $C$ of the European call option is given by
 
-$C = \max(S - K, 0), {\max{20 - 15, 0} \choose \max{5 - 15, 0}} = {5 \choose 0} \in \mathcal{R}^{2+}$
+$C = \max(S - K, 0), {\max{20 - 15, 0} \choose \max{5 - 15, 0}} = {5 \choose 0} \in \mathbb{R}^{2+}$
 
 #+begin_src python
 import numpy as np

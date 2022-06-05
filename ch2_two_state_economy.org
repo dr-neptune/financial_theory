@@ -24,25 +24,25 @@ The analysis of this chapter is based on the most simple model economy that is s
 
 An economy is an abstract notion that subsumes other elements of the financial model, like assets (real, financial), agents (people, institutions), or money.
 
-** Real Assets
+* Real Assets
 
 Multiple real assets are available in the economy that can be used for different purposes. It might be a machine or a cup
 
-** Agents
+* Agents
 
 Agents can be thought of as individual human beings being active in the economy. They accept money during transactions and spend it during others.
 
-** Time
+* Time
 
 Economic activity takes place at discrete points in time only.
 
-** Money
+* Money
 
 In the economy, money is available in unlimited supply. Money is also infinitely divisible. Money should be thought of in abstract terms only and not in terms of cash (physical coins or bills).
 
 Money in general serves as the *numeraiare* in the economy, in that the value of one unit of money (like USD, EUR, GBP, etc) is normalized to exactly 1.
 
-** Cash Flow
+* Cash Flow
 
 Combining time with currency leads to the notion of cash flow. An investment is generally considered to be a *cash outflow*, and one often represents this as a negative real number. The payback is a *cash inflow* and therewith a positive real number.
 
@@ -52,7 +52,7 @@ A pair of cash flows now and one year from now is modeled mathematically as an o
 
 $c = (c_0, c_1)$
 
-** Return
+* Return
 
 Consider an investment project with cash flows $c = (c_0, c_1) = (-10, 12)$.
 The return $R \in \mathcal{R}$ of the project is the sum of the cash flows $c_0 + c_1 = -10 + 12 = 2$.
@@ -66,13 +66,13 @@ r = R / abs(c[0])
 r
 #+end_src
 
-** Interest
+* Interest
 
 There is a difference between a cash flow today and a cash flow in one year. It results from interest that is being earned on currency units or that has to be paid to borrow currency units. Interest in this context is the price being paid for having control over money that belongs to another agent.
 
 An agent that has currency units that they do not need today can deposit these with a bank or lend them to another agent to earn interest. If the agent needs more currency units than they currently have available, they can borrow them from a bank or other agents, but they will need to pay interest.
 
-** Present Value
+* Present Value
 
 Having lending or depositing options available leads to opportunity costs for deployign money in an investment project.
 To appropriately compare cash flows in one year with those of today, the present value needs to be calculated. This is accomplished by discounting using the fixed interest rate in the economy.
@@ -95,10 +95,10 @@ discounted_cash_flow(11.0, 0.1)
 discounted_cash_flow((1, 2, 3, 4, 5), 0.1)
 #+end_src
 
-** Net Present Value
+* Net Present Value
 
 How shall an agent decide whether to conduct an investment project or not? One criterion is the net present value.
-The net present value, NPV $\in \mathcal{R}$, is the sum of the cash outflow today and the present value of the cash inflow in one year:
+The net present value, NPV $\in \mathbb{R}$, is the sum of the cash outflow today and the present value of the cash inflow in one year $NPV: \mathbb{R}^2 \to \mathbb{R}$:
 
 $NPV(c) = c_0 + D(c_1)$
 
@@ -117,7 +117,7 @@ NPV(cA, 0.1)
 NPV(cB, 0.1)
 #+end_src
 
-** Uncertainty
+* Uncertainty
 
 Cash inflows from an investment project one year from now are in general uncertain. In the model economy, the concept of states of the economy in one year subsumes the influence of all relevant factors. Assume that in one year the economy might be in one of two different states $u$ and $d$, which might be interpreted as up and down. The cash flow of a project in one year then becomes a vector
 
@@ -135,14 +135,14 @@ c1 = np.array((20, 5))
 c = (c0, c1)
 #+end_src
 
-** Financial Assets
+* Financial Assets
 
 Financial assets are financial instruments ("contracts") that have a fixed price today and an uncertain price in one year.
 Such a share might be available at a price today of $S_0 \in \mathbb{R}_{>0}$. The price of the share in one year depends on the success of the investment project, i.e., whether a high cash inflow is observed in the u state or a low one in the d state. Formally, $S_1^u, S_1^d \in \mathbb{R}_{\geq 0}$ where $S_1^u > S_1^d$.
 
 One speaks also of the price process of the financial asset $S:\mathbb{N}_0 \cross \{u, d\} \to \mathbb{R}_{\geq 0}$ mapping time and state of the economy to the price of the financial asset.
 
-** Probability Measure
+* Probability Measure
 
 The probabilities for events that are physically possible together form a probability measure. Such a probability measure is a function $P:\mathcal{P}(\{u, d\}) \to \mathbb{R}_{\geq 0}$ mapping all elements of the power set of $\{u, d\}$ with $\mathcal{P}(\{u, d\})$ to the unit interval.
 In this context, the set $\{u, d\}$ is called the state space and is symbolized by $\Omega$. The triple $(\Omega, \mathcal{P}(\Omega), P)$ is called a probability space.
@@ -164,7 +164,7 @@ P = np.array((p, 1-p))
 P
 #+end_src
 
-** Expectation
+* Expectation
 
 The expectation can be interpreted as the weighted average, where the weights are given by the probabilities.
 The expectation of the uncertain price $S_1$ in one year under probability measure $P$ is
@@ -177,7 +177,7 @@ S1 = np.array((20, 5))
 np.dot(P, S1)
 #+end_src
 
-** Expected Return
+* Expected Return
 
 Under uncertainty, the notions of return and rate of return need to be adjusted. In such a case, the expected return of a financial asset is given as the expectation of the price in one year minus the price today. This can be seen by taking the expectation of the uncertain return $R = (R^u, R^d)^T$ and rearranging as follows:
 
@@ -206,7 +206,7 @@ er
 err
 #+end_src
 
-** Volatility
+* Volatility
 
 In finance, risk and expected return are the dominating pair of concepts. Risk can be measured in many ways, while the volatility as measured by the standard deviation of the rates of return is probability the most common measure.
 
@@ -239,7 +239,7 @@ sigma = np.sqrt(ss)
 sigma
 #+end_src
 
-** Contingent Claims
+* Contingent Claims
 
 A *contingent claim* is a financial asset - formalized by some contract - that offers a state-contingent payoff one year from now.
 Such a contingent claim can have an arbitrary state-contingent payoff or one that is derived from the payoff of other financial assets.
@@ -276,7 +276,7 @@ plt.ylabel('$C_1$')
 plt.show()
 #+end_src
 
-** Replication
+* Replication
 
 When introducing a contingent claim into the economy, an important question that arises is whether the payoff of the contingent claim is redundant or not.
 
@@ -307,6 +307,53 @@ M = np.array((B[1], S[1])).T  # matrix with future payoff vectors
 K = 15                        # the strike price for the call option
 C1 = np.maximum(S[1] - K, 0)  # values for the payoff vector in one year
 phi = np.linalg.solve(M, C1)  # find the numerical values of the payoff vector, b and s
+# solves the replication problem in matrix form to obtain the optimal portfolio positions
+phi
 #+end_src
 
-** Arbitrage Pricing
+* Arbitrage Pricing
+
+How much does it cost to replicate the payoff of the call option?
+
+Define the value of the replication portfolio today by $V_0(\phi)$. It is given by the dot product:
+
+$V_0(\phi) = (\begin{pmatrix} b \\ s \end{pmatrix}, \begin{pmatrix} B_0 \\ S_0 \end{pmatrix}) = b \cdot B_0 + s \cdot S_0$
+
+The uncertain value of the replication portfolio in one year $V_1(\phi)$ can be represented via matrix multiplication as
+
+$V_1(\phi) = \begin{pmatrix} B_1 & S_1^u \\ B_1 & S_1^d \end{pmatrix} \cdot \begin{pmatrix} b \\ s \end{pmatrix} = \begin{pmatrix} 5 \\ 0 \end{pmatrix}$
+
+
+Together, one has the /value process/ of the portfolio as $V(\phi) = (V_0(\phi), V_1(\phi))$ if there is no ambiguity regarding the portfolio.
+
+Having a portfolio available that perfectly replicates the future payoff of a contingent claim raises the next question:
+
+What if the price of the contingent claim today differs from the costs of setting up the replication portfolio?
+Then there exists an /arbitrage/ or /arbitrage opportunity/ in the economy.
+
+An *arbitrage* is a trading strategy $\phi$ that creates a risk-less profit out of an investment of 0. Formally,
+
+$\phi$ is an arbitrage if
+
+$V_0(\phi) = 0$ and $E^P(V_1(\phi)) > 0$
+
+or
+
+$V_0(\phi) > 0$ and $V_1(\phi) = 0$
+
+A model for an economy that allows for arbitrage opportunities can be considered not viable.
+Therefore, the only price that is consistent with the absence of arbitrage is $C_0 = 1.818181$.
+One calls this price the /arbitrage price/ of the call option.
+
+Formally, the arbitrage price is the dot product of the replication portfolio and the price vector of the replicating financial assets:
+
+$C_0 \equiv V_0(\phi) = (\phi^*, \begin{pmatrix} B_0 \\ S_0 \end{pmatrix}) = b^* \cdot B_0 + s^* \cdot S_0$
+
+giving rise to an arbitrage-free price process for the contingent claim of $C = (C_0, C_1)$
+
+#+begin_src python
+C0 = np.dot(phi, (B[0], S[0]))
+C0
+#+end_src
+
+* Market Completeness

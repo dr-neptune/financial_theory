@@ -357,3 +357,243 @@ C0
 #+end_src
 
 * Market Completeness
+
+The set of attainable contingent claims $\mathbb{A}$ comprises all those contingent claims that are replicable by trading in financial assets. It is given by the span, which is the set of all linear combinations of the future price vectors of the traded financial assets.
+
+$\mathbb{A} = \{\mathcal{M} \cdot \phi, \phi \in \mathbb{R}_{\geq 0}^2\}$
+
+if short selling is prohibited, and
+
+$\mathbb{A} = \{\mathcal{M} \cdot \phi, \phi \in \mathbb{R}^2\}$
+
+if it is allowed in unlimited fashion.
+
+Since /every/ contingent claim can be replicated by a portfolio consisting of a position in the risk-less bond and the risky stock, one speaks of a /complete market model/.
+Therefore, every contingent claim can be priced by replication and arbitrage.
+
+Formally, the only requirement is that the price vectors of the two financial assets in one year be linearly independent
+
+The payoff vectors of the two traded financial assets span $\mathbb{R}^2$ since they form a /basis/ of the vector space.
+
+#+begin_src python
+from numpy.random import default_rng
+
+# fix the rng seed
+rng = default_rng(100)
+
+# number of values to be simulated
+n = 1000
+
+# simulate the bond position for values between 0 and 1 by sampling a uniform RV
+b = rng.random(n)
+
+# derives the stock position as the difference between 1 and the bond position
+s = (1 - b)
+
+def portfolio(b, s):
+    A = [b[i] * B[1] + s[i] * S[1] for i in range(n)]
+    return np.array(A)
+
+# initiate calculation
+A = portfolio(b, s)
+
+# plot
+plt.figure()
+plt.plot(A[:, 0], A[:, 1], 'r.')
+plt.show()
+#+end_src
+
+We get a straight line, since the random portfolio positions sum to 1
+
+#+begin_src python
+s = rng.random(n)
+A = portfolio(b, s)
+
+# plot
+plt.figure()
+plt.plot(A[:, 0], A[:, 1], 'r.')
+plt.show()
+#+end_src
+
+The random portfolio span a 2D area (rhombus)
+
+If we allow for positive as well as negative portfolio positions for both the bond and the stock, we get an elliptic area around the origin:
+
+#+begin_src python
+b, s = rng.standard_normal(n), rng.standard_normal(n)
+A = portfolio(b, s)
+
+# plot
+plt.figure()
+plt.plot(A[:, 0], A[:, 1], 'r.')
+plt.show()
+#+end_src
+
+* Arrow-Debrau Securities
+
+An /Arrow-Debreu security/ is defined by the fact that it pays exactly one unit of currency in a specified future state.
+Since the market is complete, Arrow-Debreu securities can be replicated by portfolios with bond and stock. Therefore, both replication problems have (unique) solutions, and both securities have unique arbitrage prices.
+
+The two replication problems are:
+
+$\mathcal{M} \cdot \phi = \begin{pmatrix} 1 \\ 0 \end{pmatrix}$
+
+$\mathcal{M} \cdot \phi = \begin{pmatrix} 0 \\ 1 \end{pmatrix}$
+
+These two payoff vectors for a /standard basis/, or /natural basis/ for the $\mathbb{R}^2$ vector space.
+
+Financially, replacing the original future price vectors of the bond and the stock with AD securities as a basis for the model economy significantly simplifies the replication problem for all other contingent claims.
+
+Consider the two AD securities with price processes:
+
+$\gamma^u = (\gamma_0^u, (1, 0)^T)$
+
+$\gamma^d = (\gamma_0^d, (1, 0)^T)$
+
+and define:
+
+$M^\gamma = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}$
+
+
+Consider a general contingent claim with future payoff vector:
+
+$C_1 = \begin{pmatrix} C_1^u \\ C_1^d \end{pmatrix}$
+
+The replication portfolio $\phi^\gamma$ for the contingent claim then is trivially given by $\phi^\gamma = (C_1^u, C_1^d)^T$
+
+The arbitrage price for the contingent claim is:
+
+$C_0 = V_0(\phi^\gamma) = C_1^u \cdot \gamma_0^u + C_1^d \cdot \gamma_0^d$
+
+* Martingale Pricing
+
+A /martingale measure/ $Q: \mathcal{P}(\Omega) \to \mathbb{R}_{\geq 0}$ is a special kind of probability measure. It makes the discounted price process of a financial asset a /martingale/.
+For the stock to be a martingale under Q, the following relationship must hold:
+
+$S_0 = \frac{1}{1 + i} \cdot \mathbb{E}^Q(S_1)$
+
+One also speaks of the fact that the price processes drift (on average) with the risk-less interest rate under the martingale measure:
+
+$B_0 \cdot (1 + i) = B_1$
+
+$S_0 \cdot (1 + i) = E^Q (S_1)$
+
+Denote $q \equiv Q(u)$. One gets
+
+$q \cdot S_1^u + (1 - q) \cdot S_1^d = S_0 \cdot (1 + i)$
+
+$q = \frac{S_0 \cdot (1 + i) - S_1^d}{S_1^u - S_1^d}$
+
+Given previous assumptions, for q to define a valid probability measure, $S_1^u > S_0 \cdot (1 + i) > S_1^d$ must hold. If so, one gets a new probability space ($\Omega, \mathcal{P}(\Omega), Q$) where Q replaces P
+
+If these relationships for $S_1$ do not hold, then a simple arbitrage is either to buy the risky asset in the case $S_0 \cdot (1 + i) \leq S_1^d$ or simply sell it in the other case $S_0 \cdot (1 + i) \geq S_1^u$
+
+If equality holds in these relationships, one also speaks of a /weak arbitrage/ since the riskless profit can only be expected on average and not with certainty.
+
+Assuming the numerical price processes from before, the calculation of q in Python is just an arithmetic operation on floating point numbers:
+
+#+begin_src python
+i = (B[1][0] - B[0]) / B[0]
+i
+
+q = (S[0] * (1 + i) - S[1][1]) / (S[1][0] - S[1][1])
+q
+#+end_src
+
+* First Fundamental Theorem of Asset Pricing
+
+** First Fundamental Theorem of Asset Pricing
+
+The following statements are equivalent:
+
+1. A martingale measure exists
+2. The economy is arbitrage-free
+
+* Pricing by Expectation
+
+A corollary of the first fundamental theorem of asset pricing is that any attainable contingent claim $C_1 \in \mathbb{A}$ can be priced by taking the expectation under the martingale measure of its future payoff and discounting with the riskless interest rate. The arbitrage price of the call option is known through replication. Assuming the same numerical price processes for the traded financial assets and the same numerical future payoff vector for the call option, the /martingale price/ of the call option is:
+
+$C_0 = \frac{1}{1 + i} \cdot E^Q(C_1) = \frac{1}{1 + i} \cdot (q \cdot C_1^u + (1 - q) \cdot C_1^d)$
+
+In python, martingale pricing boils down the the evaluation of a dot product:
+
+#+begin_src python
+Q = (q, 1 - q)               # define the martingale as a tuple Q
+np.dot(Q, C1) / (1 + i)      # implements the martingale pricing formula
+#+end_src
+
+* Second Fundamental Theorem of Asset Pricing
+
+This relates the uniqueness of the martingale measure with market completeness.
+
+** Second Fundamental Theorem of Asset Pricing
+
+The following statements are equivalent:
+1. The martingale measure is unique
+2. The market model is complete
+
+* Mean-Variance Portfolios
+
+A major breakthrough in finance was the formalization and quantification of portfolio investing through the mean-variance portfolio theory (MVP) as pioneered by Markowitz.
+MVP reduces a financial asset to the first and second moment of its returns, namely the mean as the expected rate of return and the variance of the rates of return or the volatility.
+Although the approach is generally called mean-variance, it is often the combination mean-volatility that is used
+
+The *expected portfolio payoff* for a riskless bond and risky stock s.t. b + s = 1 with $b, s \in \mathcal{R}_{\geq 0}$
+
+$E^P (\mathcal{M} \cdot \phi) = b \cdot B_1 + s \cdot E^P(S1)$
+
+In words: the expected portfolio payoff is simply b times the riskless bond payoff s times the expected stock payoff.
+
+The *expected portfolio rate of return* is
+
+$E^P(\mathcal{R} \cdot \phi) = b \cdot i + s \cdot \mu$
+
+where $\mathcal{R} = \begin{pmatrix} i & r_1^u \\ i & r_1^d \end{pmatrix}$
+
+In words: The expected portfolio rate of return is b times the riskless interest rate + s times the expected rate of return of the stock
+
+The *portfolio variance* is
+
+$\sigma^2 (\mathcal{R} \cdot \phi) = s^2 \cdot \sigma^2(r_1)$
+
+or $s^2$ times the stock variance, which makes sense since the bond is riskless.
+
+Here is portfolio volatility:
+
+$\sigma (\mathcal{R} \cdot \phi) = s \cdot \sigma(r_1)$
+
+#+begin_src python
+B = (10, np.array((11, 11)))
+S = (10, np.array((20, 5)))
+M = np.array((B[1], S[1])).T            # matrix with the future prices of the financial assets
+M0 = np.array((B[0], S[0]))             # vector with the prices of the financial assets today
+R = M / M0 - 1                          # the return matrix
+P = np.array((0.5, 0.5))                # defines the probability measure
+
+np.dot(P, R)                            # the expected returns of the bond and stock
+s = 0.55                                # an example allocation for the stock in percent (decimals)
+phi = (1 - s, s)                        # resulting portfolio with a weight of 1
+mu = np.dot(phi, np.dot(P, R))          # expected portfolio return given the allocations
+sigma = s * R[:, 1].std()               # volatility of the portfolio
+
+values = np.linspace(0, 1, 25)
+mu = [np.dot(((1 - s), s), np.dot(P, R)) for s in values]
+sigma = [s * R[:, 1].std() for s in values]
+
+# expected portfolio return and volatility for different allocations
+plt.figure()
+plt.plot(values, mu, lw=3.0, label='$\mu_p$')
+plt.plot(values, sigma, '--', lw=3.0, label='$\sigma_p$')
+plt.legend(loc=0)
+plt.xlabel('$s$')
+plt.show()
+
+
+# feasible combinations of expected portfolio return and volatility
+plt.figure()
+plt.plot(sigma, mu, lw=3.0, label='risk-return')
+plt.legend(loc=0)
+plt.xlabel('$\sigma_p$')
+plt.ylabel('$\mu_p$')
+plt.show()
+#+end_src

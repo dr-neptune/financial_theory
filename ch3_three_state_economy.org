@@ -1,0 +1,8 @@
+#+TITLE: Chapter 3: Three-State Economy
+
+This chapter enriches the two-state economy by just a single additional state while keeping the number of traded financial assets constant at 2.
+In this slightly enriched /static three-state economy/, the notions of market incompleteness and indeterminancy of the martingale measure are discussed.
+Super-replication and approximate replication approaches are presented to cope with incompleteness and its consequences for the pricing of contingent claims.
+This chapter also presents the Capital Asset Pricing Model (CAPM), which builds on the mean-variance portfolio analysis and adds equilibrium arguments to derive prices for financial assets in mean-volatility space even if they are not replicable.
+
+* Uncertainty

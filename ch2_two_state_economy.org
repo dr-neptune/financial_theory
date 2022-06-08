@@ -522,7 +522,7 @@ Q = (q, 1 - q)               # define the martingale as a tuple Q
 np.dot(Q, C1) / (1 + i)      # implements the martingale pricing formula
 #+end_src
 
-* Second Fundamental Theorem of Asset Pricing
+* Second Fundxpamental Theorem of Asset Pricing
 
 This relates the uniqueness of the martingale measure with market completeness.
 

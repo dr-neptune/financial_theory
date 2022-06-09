@@ -204,3 +204,36 @@ The equation describing the (upper, increasing part of the) CML is
 $\mu = i + \frac{\mu_S - i}{\sigma_S} \cdot \sigma$
 
 * Capital Asset Pricing Model
+
+The /Capital Asset Pricing Model/ (CAPM) as pioneered by Sharpe is an equilibrium pricing model that mainly relates the expected rate of return of an arbitrary financial asset or portfolio and its volatility with the market portfolio's expected rate of return and volatility.
+
+To this end, the /correlation/ between the rates of return of a financial asset and the market portfolio is of importance.
+
+Consider the case of a financial asset $T$, which is part of the market portfolio and for which the correlation with the market portfolio shall not be perfect. For such a financial asset, the expected rate of return is given by:
+
+$\mu_T = i + \frac{\rho_{ST} \cdot \sigma_S \cdot \sigma_T}{\sigma_S^2} \cdot (\mu_S - i)$
+
+where $\rho_{ST}$ is the correlation between asset T and asset S
+
+If we let $\beta_T \equiv \frac{\rho_{ST} \cdot \sigma_S \cdot \sigma_T}{\sigma_S^2}$, then we get the famous CAPM linear relationship between the expected rate of return of the market portfolio and the expected return of the financial asset $T$:
+
+$\mu_T = i + \beta_T \cdot (\mu_S - i)$
+
+This could also be applied to any financial asset. In that sense, the CAPM states that the rate of return for any financial asset is only determined by the expected excess return of the market portfolio over the risk-less interest rate and the beta factor, which is the covariance between the two, scaled by the square of the market portfolio volatility (variance of returns).
+
+For the CAPM, the CML is replaced by the /security market line/, which is plotted in beta-return space as follows:
+
+#+begin_src python
+beta = np.linspace(0, 2, 25)
+mu = i + beta * (mu_S - i)
+
+# security market line
+plt.figure()
+plt.plot(beta, mu, label='security market line')
+plt.xlabel('$\\beta$')
+plt.ylabel('$\\mu$')
+plt.ylim(0, 0.25)
+plt.plot(1, mu_S, 'ro', label='market portfolio')
+plt.legend(loc=0)
+plt.show()
+#+end_src

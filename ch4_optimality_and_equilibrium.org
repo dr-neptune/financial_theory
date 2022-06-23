@@ -1,1 +1,62 @@
 #+TITLE: Chapter 4: Optimality and Equilibrium
+
+At the core of this chapter is the /expected utility maximization/ paradigm, which is the dominant way of modeling an agent's preferences in financial economics. Based on this paradigm, 2 central topics are discussed:
+
+1. How an agent chooses an optimal portfolio given their preferences and the initial wealth
+
+2. This chapter derives prices from fundamental principles in that it analyzes the pricing of financial assets based on the optimization problem of a so-called representative agent in addition to equilibrium arguments.
+
+Loosely speaking, a representative agent can be thought of as the aggregation of infinitely many agents acting independently in (financial) markets.
+
+* Utility Maximization
+
+Formally, an agent is modeled by a /utility function/, which orders a set of choices the agent is faced with and which is a representation of the agent's /preferences/.
+
+Consider an agent with some initial wealth, $w \in \mathbb{R}_{\geq 0}$. The agent receives utility from money today $c_0$ and in one year $c_1$ according to the utility function:
+
+$U: \mathbb{R}_{\geq 0}^2 \to \mathbb{R}_{\geq 0}, (c_0, c_1) \mapsto u(c_0, c_1)$
+
+As an example, if $u(c_0, c_1) = c_0 \cdot c_1$ (expressing the idea that money today and in one year are imperfect substitutes), what is the optimal consumption saving plan for the agent?
+
+The constained optimization problem is:
+
+$\max_{c_0, c_1}\{c_0, c_1\}$ s.t. $c_0 + c_1 = w$
+
+We can use the Lagrange Theorem to turn the constrained optimization problem into an unconstrained one of the form:
+
+$\max_{c_0, c_1, \lambda}\{f(c_0, c_1, \lambda)\} = c_0 \cdot c_1 - \lambda (c_0 + c_1 - w)$
+
+The necessary first-order conditions for optimality are:
+
+
+#+DOWNLOADED: screenshot @ 2022-06-23 19:44:34
+[[file:Utility_Maximization/2022-06-23_19-44-34_screenshot.png]]
+
+From which one can derive $c_0 = c_1 = \frac{w}{2}$ as the optimal consumption-saving plan.
+
+We can model and solve this in python numerically:
+
+#+begin_src python
+from scipy.optimize import minimize
+
+# the initial wealth of the agent to be distributed between today and the future
+w = 10
+
+# utility function with a - sign to accomplish a maximization through minimization
+def u(c):
+    return -c[0] * c[1]
+
+# the budget constraint as an equality constraint for the minimize function
+cons = ({'type': 'eq', 'fun': lambda c: c[0] + c[1] - w})
+
+# the optimization with initial guess and budget constraint
+opt = minimize(u, (1, 1), constraints=cons)
+
+# the optimal consumption saving plan
+opt['x']
+
+# the maximum utility gained through the optimal plan
+-opt['fun']
+#+end_src
+
+* Indifference Curves

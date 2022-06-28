@@ -60,3 +60,172 @@ opt['x']
 #+end_src
 
 * Indifference Curves
+
+The optimal solution from the previous section can be visualized by means of /indifference curves/. An indifference curve is formed by all such combinations $c = (c_0, c_1)$ that give the same utility $\bar{u}$.
+
+The equation describing such a curve $(c_0, c_1)$ space is:
+
+$\bar{u} = c_0 \cdot c_1 \iff c_1 = \frac{\bar{u}}{c_0}$
+
+The equation describing the line representing the budget constraint is:
+
+$w = c_0 + c_1 \iff c_1 = w - c_0$
+
+#+begin_src python
+# indifference curves
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('tkAgg')
+plt.style.use('seaborn')
+
+def iu(u, c0):
+    """function for the indifference curve"""
+    return u / c0
+
+def c1(c0):
+    """function for the budget line"""
+    return w - c0
+
+# the domain over which to plot
+c0 = np.linspace(1, w)
+
+plt_c0 = lambda v, l: plt.plot(c0, iu(v, c0), l, label=f'$u={v}$')
+
+# plot indifference curves for different levels of utility
+plt.figure(figsize=(10, 6))
+plt.plot(c0, c1(c0), label='budget constraint', lw=3.0)
+plt_c0(15, '--')
+plt_c0(25, '')
+plt_c0(35, '-.')
+plt.plot(opt['x'][0], opt['x'][1], 'ro', label='$c=(5, 5)$')  # budget line
+plt.legend(loc=0)
+plt.show()
+#+end_src
+
+* Appropriate Utility Functions
+
+The utility that an agent gains from money they have available at a certain point in time - as a substitute for any other real asset that might be bought with the money, for instance - is typically expressed as a function $u: \mathbb{R}_{\geq 0} \to \mathbb{R}$, which is assumed to satisfy 3 conditions:
+
+1. $u(x)$ is twice differentiable
+2. $\frac{du}{dx} > 0$
+3. $\frac{d^2 u}{dx^2} \leq 0$
+
+The first is a technical prerequisite for the other two. The second condition formalizes the idea that more money - everything else being equal - is better than less money. Agents are assumed to be insatiable. The third condition states that the marginal utility from an additional unit of money is smaller than the marginal utility of the previous unit of money. The function is therewith assumed to be increasing and (quasi-)concave.
+
+* Logarithmic Utility
+
+$\ln x$ is well suited for financial analyses based on a utility maximizing agent, as it satisfies the three conditions of the previous section.
+
+#+begin_src python
+x = np.linspace(0.5, 10, 50)
+utils = np.log(x)
+
+u1 = 1 / x
+u2 = -1 / x ** 2
+
+# ln and its 1st and 2nd derivatives
+plt.figure(figsize=(10, 6))
+plt.plot(x, u, label='$u$')
+plt.plot(x, u1, '--', label='$du/dx$')
+plt.plot(x, u2, '-.', label='$d^2u/dx^2$')
+plt.legend(loc=0)
+plt.show()
+#+end_src
+
+* Time-Additive Utility
+
+Using the natural logarithm as a function to model utility of an agent from money, the preferences of an agent over consumption-saving plans $c = (c_0, c_1)$ can be described as a time-additive function of the following form:
+
+$U: \mathbb{R}^2_{\geq 0} \to \mathbb{R}$
+
+$(c_0, c_1) \mapsto \ln c_0 + \kappa \cdot \ln c_1$
+
+where $\kappa \in \mathbb{R}_{\geq 0}$ is assumed to take on values $0 < \kappa \leq 0$ and represents the /time preference/ of the agent. It embodies the idea that money and consumption today are valued higher than in one year.
+
+If the agent has initial wealth of $w$, their unconstrained optimization problem is:
+
+$\max_{c_0, c_1, \lambda} f(c_0, c_1, \lambda) = \ln c_0 + \kappa \cdot \ln c_1 - \lambda \cdot (c_0 + c_1 - w)$
+
+where the necessary conditions for optimality are:
+
+$\frac{\delta f}{\delta c_0} = \frac{1}{c_0} - \lambda = 0$
+
+$\frac{\delta f}{\delta c_1} = \kappa \cdot \frac{1}{c_1} - \lambda = 0$
+
+$\frac{\delta f}{\delta \lambda} = c_0 + c_1 - w = 0$
+
+From these, one obtains:
+
+$\frac{1}{c_0} = \kappa \cdot \frac{1}{c_1} \iff c_1 = \kappa \cdot c_0$
+
+The optimal consumption-saving plan now reflects the time preference in that consumption in one year $c_1$ is set to $\kappa \cdot c_0$. It also holds
+
+$c_0 + \kappa \cdot c_0 = w \iff c_0 = \frac{w}{1 + \kappa}$
+
+and
+
+$\frac{w}{1 + \kappa} = w \iff c_1 = \frac{\kappa \cdot w}{1 + \kappa}$
+
+The budget constraint is binding:
+
+$\frac{w}{1 + \kappa} + \frac{\kappa \cdot w}{1 + \kappa} = \frac{w + \kappa \cdot w}{1 + \kappa} = w$
+
+
+#+begin_src python
+# time additive utility
+# numerical optimization for w = 10
+import math
+from scipy.optimize import minimize
+
+kappa = 10/11
+w = 10
+
+def U(c):
+    return -(math.log(c[0]) + kappa * math.log(c[1]))
+
+# budget constraint as an equality constraint for minimize
+cons = ({'type': 'eq', 'fun': lambda c: c[0] + c[1] - w})
+
+opt = minimize(U, (1, 1), constraints=cons)
+
+# optimal consumption-saving plan, reflecting the time preference
+# that c0 is > c1 by exactly 10%
+opt['x']
+#+end_src
+
+* Expected Utility
+
+Now we consider the static two-state economy with uncertainty.
+
+A model for the investment problem the agent is faced with under uncertainty is given by the /expected utility/ of the agent that is to be maximized given $w$. The expected utility funciton is given by:
+
+$U: \mathbb{R}^2_{\geq 0} \to \mathbb{R}$
+
+$c_1 \mapsto \mathbb{E}^P (u(c_1))$
+
+We can turn this problem into the unconstrained optimization problem:
+
+$\max_{b, s, \lambda} f(b, s, \lambda) = \mathbb{E}^P(u(b \cdot B_1 + s \cdot S_1)) - \lambda \cdot (b \cdot B_0 + s \cdot S_0 - w)$
+
+where the agent chooses $b$ and $s$ to maximize expected utility given the budget constraint.
+
+* Optimal Investment Portfolio
+
+What does an optimal solution for the expected utility maximizing agent look like?
+In general terms, the answer can be given based on the first-order conditions that are necessary and sufficient here for an optimal solution:
+
+all the first order derivatives are 0
+
+#+begin_src python
+B = (10, (11, 11)) # 1
+S = (10, (20, 5))  # 2
+M0 = np.array((B[0], S[0])) # 3
+M = np.array((B[1], S[1])).T # 4
+p = 0.5 # 5
+P = np.array((p, 1 - p))
+
+def U(phi):
+    c1 = np.dot(M, phi)
+    return -np.dot(P, np.log(c1))
+#+end_src

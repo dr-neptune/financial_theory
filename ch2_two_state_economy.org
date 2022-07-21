@@ -468,6 +468,7 @@ $C_0 = V_0(\phi^\gamma) = C_1^u \cdot \gamma_0^u + C_1^d \cdot \gamma_0^d$
 * Martingale Pricing
 
 A /martingale measure/ $Q: \mathcal{P}(\Omega) \to \mathbb{R}_{\geq 0}$ is a special kind of probability measure. It makes the discounted price process of a financial asset a /martingale/.
+
 For the stock to be a martingale under Q, the following relationship must hold:
 
 $S_0 = \frac{1}{1 + i} \cdot \mathbb{E}^Q(S_1)$

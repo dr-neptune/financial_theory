@@ -218,14 +218,345 @@ In general terms, the answer can be given based on the first-order conditions th
 all the first order derivatives are 0
 
 #+begin_src python
-B = (10, (11, 11)) # 1
-S = (10, (20, 5))  # 2
-M0 = np.array((B[0], S[0])) # 3
-M = np.array((B[1], S[1])).T # 4
-p = 0.5 # 5
+B = (10, (11, 11)) # the bond process
+S = (10, (20, 5))  # the stock process
+M0 = np.array((B[0], S[0])) # the price vector of the 2 traded financial assets
+M = np.array((B[1], S[1])).T # The market payoff matrix of the 2 traded financial assets
+p = 0.5 # the physical probability measure for the economy
 P = np.array((p, 1 - p))
 
 def U(phi):
-    c1 = np.dot(M, phi)
+    c1 = np.dot(M, phi)  # The expected utility function with logarithmic utility
     return -np.dot(P, np.log(c1))
+
+w = 10
+
+# budget constraint based on the dot product of the price and portfolio vectors
+cons = ({'type': 'eq',
+         'fun': lambda phi: np.dot(M0, phi) - w})
+
+opt = minimize(U, (1, 1), constraints=cons)  # expected utility maximization problem as a minimization
+
+np.dot(M, opt['x'])  # state contingent payoff from the portfolio optimization
 #+end_src
+
+* Time-Additive Expected Utility
+
+It is possible to formulate the decision-making problem of the agent to include utility from money today as well:
+
+$U: \mathbb{R}_{\geq 0} \cross \mathbb{R}_{\geq 0} \to \mathbb{R}$
+
+$(c_0, c_1) \mapsto u(c_0) + \kappa \cdot \mathbb{E}^P(u(c_1))$
+
+With initial wealth $w$, the optimization problem in unconstrained form becomes:
+
+$\max_{c_0, b, s, \lambda} f(c_0, b, s, \lambda) = u(c_0) + \kappa \cdot \mathbb{E}^P(u(b \cdot B_1 + s \cdot S_1)) - \lambda \cdot (c_0 + b \cdot B_0 + s \cdot S_0 - w)$
+
+#+begin_src python
+# price vector including the price of 1 for consumption today
+M0 = np.array((1, B[0], S[0]))
+
+kappa = 10 / 11  # the time preference factor
+
+def U(phi):
+    """
+    Expected utility function taking into account consumption today and
+    the time preference
+    """
+    c0 = phi[0]
+    c1 = np.dot(M, phi[1:])
+    return -(np.log(c0) + kappa * np.dot(P, np.log(c1)))
+
+opt = minimize(U, (1, 1, 1), constraints=cons)
+opt['x'][0]  # what the agent consumes today from w
+
+np.dot(M, opt['x'][1:])  # state-contingent payoff from the bond and stock position
+#+end_src
+
+* Pricing in Complete Markets
+
+Assume there are 2 Arrow-Debreu securities being traded in the economy with 2 future states and that the /net supply/ for both is one. The two payoff vectors form a /standard basis/ for $\mathbb{R}^2$, and the market payoff matrix is:
+
+$\mathcal{M} = \begin{pmatrix} 1 & 0 \\ 0 & 1\end{pmatrix}$
+
+Assume now that there is a /representative agent/ in the economy that is the only one trading the 2 securities.
+In an /equilibrium/, the representative agent needs to hold the net supply of both securities because there is nobody else.
+The mechanism that ensures equilibrium is the prices of the 2 securities today, that is, the price vector:
+
+$\mathcal{M}_0 = (\gamma^u, \gamma^d)^T \in \mathbb{R}^2_{\geq 0}$
+
+With the investment portfolio $\phi = (\phi^u, \phi^d)^T$, the problem of the expected utility maximizing representative agent is
+
+$\max_\phi E^p(u(\mathcal{M} \cdot \phi))$ s.t. $\mathcal{M}_0 \cdot \phi = w$
+
+or, in unconstrained parlance
+
+$\max_{\phi, \lambda} E^p(u(\mathcal{M} \cdot \phi)) - \lambda \cdot (\mathcal{M}_0 \cdot \phi - w)$
+
+What consequences for the prices $\mathcal{M}_0$ follow from these optimality conditions?
+
+After some assumptions (in equilibrium $\phi^u = \phi^d = 1$, $w = 1$), we arrive at the equilibrium prices of
+
+$y^u = p$
+
+$y^d = 1 - p$
+
+or the equilibrium price vector $\mathcal{M^*}_0 = (p, 1 - p)^T$
+
+* Arbitrage Pricing
+
+What about arbitrage prices of contingent claims given the equilibrium price vector $\mathcal{M^*}_0$?
+In complete markets, in which every contingent claim is attainable, the price of any such
+attainable contingent claim $C_1 \in \mathbb{A} = \mathbb{R}^2_{\geq 0}$ is then given by:
+
+$C_0 = \mathcal{M^*}_0 \cdot C_1 = y^u \cdot C_1^u + y^d \cdot C_1^d$
+
+This is because the replication portfolio is simply the state-contingent payoff itself $\phi = C_1$ in
+the special case of 2 Arrow-Debreu securities. The prices of AD securities are therefore also called
+/state prices/ because they represent the price for one unit of currency (consumption) in a certain state.
+
+* Martingale Pricing
+
+The condition for the Martingale measure $Q$ is that it makes all discounted price processes of traded financial assets a martingale.
+
+$\mathcal{M^*}_0 = \frac{1}{1 + i} \cdot \mathbb{E}^Q(\mathcal{M})$
+
+or, more explicitly
+
+$p \cdot (1 + i) = q$
+$(1 - p) \cdot (1 + i) = 1 - q$
+
+from these, $i = 0$ and $q = p$ follows.
+
+Every attainable contingent claim $C_1 \in \mathbb{A}$ can be priced by simply taking the expectation under the physical probability measure in this special kind of representative agent economy. Formally, this translates to
+
+$C_0 = \mathbb{E}^P(C_1)$
+
+* Risk-less Interest Rate
+
+The equilibrium risk-less rate is 0 because there is no risk-less financial asset traded that fixes another interest rate.
+
+* A Numerical Example (1)
+
+#+begin_src python
+import numpy as np
+
+
+# the probability measure
+p = 1 / 3
+P = np.array((1, (1 - p)))
+B1 = np.array((11, 11))
+S1 = np.array((20, 5))
+
+# the price ratio zeta given optimality conditions
+zeta = np.dot(S1 / (B1 + S1), P) / np.dot(B1 / (B1 + S1), P)
+zeta
+
+# the initial wealth
+w = 15
+
+# equilibrium price level of the riskless bond given zeta and w
+B0 = w / (1 + zeta)
+
+# resulting equilibrium price level of the risky stock
+S0 = zeta * B0
+
+# the budget constraint is binding
+B0 + S0
+
+# equilibrium interest rate given the price level for the riskless bond
+i = B1.mean() / B0 - 1
+i
+
+# equilibrium expected rate of return of the risky stock
+mu = np.dot(S1, P) / S0 - 1
+
+mu
+#+end_src
+
+Equilibrium pricing does not lead in this case to the discounted price processes being Martingales under the physical probability measure. The /martingale measure/ is easily derived, however.
+
+#+begin_src python
+import sympy as sy
+
+q = sy.Symbol('q')
+
+# formulate the equation for q given the martingale condition
+eq = (q * 20 + (1 - q) * 5) / (1 + i) - S0
+
+# simplified equation
+eq
+
+# numerically solve the equation
+q = sy.solve(eq)[0]
+
+# the resulting martingale measure
+q
+
+# both discounted price processes are martingales under Q
+Q = np.array((q, 1 - q))
+np.dot(B1, Q) / (1 + i)
+np.dot(S1, Q) / (1 + i)
+#+end_src
+
+* Pricing in Incomplete Markets
+
+Representative agent pricing works exactly the same way in incomplete markets as it does in complete markets.
+
+
+#+begin_src python
+# the probability measure
+p = 1 / 3
+P = np.array((p, p, p))
+B1 = np.array((11, 11, 11))
+S1 = np.array((20, 10, 5))
+
+# the price ratio zeta given optimality conditions
+zeta = np.dot(S1 / (B1 + S1), P) / np.dot(B1 / (B1 + S1), P)
+zeta
+
+# the initial wealth
+w = 15
+
+# equilibrium price level of the riskless bond given zeta and w
+B0 = w / (1 + zeta)
+B0
+
+# resulting equilibrium price level of the risky stock
+S0 = zeta * B0
+S0
+
+# the budget constraint is binding
+B0 + S0
+
+# equilibrium interest rate given the price level for the riskless bond
+i = B1.mean() / B0 - 1
+i
+
+# equilibrium expected rate of return of the risky stock
+mu = np.dot(S1, P) / S0 - 1
+
+mu
+#+end_src
+
+
+* Martingale Measures
+
+Although representative agent pricing works in incomplete markets the same way as in complete ones, it unfortunately does not directly solve the problem of pricing contingent claims that are not attainable. There are still infinitely many martingale measures that are consistent with the market.
+
+#+begin_src python
+# show there are infinitely many martingale measures that are
+# consistent with equilibrium price processes
+
+qu = sy.Symbol('qu')
+qm = sy.Symbol('qm')
+
+# equation for qu, qm given the martingale condition
+eq = (qu * 20 + qm * 10 + (1 - qu - qm) * 5) / (1 + i) - S0
+# simplified
+eq
+
+# solve the eq. Doesn't take into account 0 \leq q^u, q^d \leq 1
+Q = sy.solve(eq, set=True)
+# relationship between qu and qm, indicating infinitely many solutions
+Q
+#+end_src
+
+In incomplete markets, there are generally /infinitely many/ martingale measures that are consistent with the market. In practice, one solves this issue by relying on publicly observed market prices for liquidly trading contingent claims, such as plain vanilla European put or call options.
+
+These prices are used to calibrate model parameters or the martingale measure directly to be consistent with the market.
+
+* Equilibrium Pricing
+
+If a contingent claim is not attainable through replication portfolios composed of traded financial assets, this can mean that the payoff vector is linearly independent of the two future price vectors of the traded financial assets. This in turn implies that the introduction of a contingent claim with such a payoff vector is /market-completing/ - because three linearly independent vectors form a basis of $\mathbb{R}^3$.
+
+Consider the market payoff matrix of the first 2 AD securities, each available at a net supply of 1:
+
+$\mathcal{M} = \begin{pmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0\end{pmatrix}$
+
+The market is incomplete because the two securities do not span $\mathbb{R}^3$. Introducing a contingent claim with net supply of 1 that pays 1 unit of currency in the $d$ state completes the market:
+
+$\mathcal{M} = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1\end{pmatrix}$
+
+The 3 payoff vectors now form a standard basis of $\mathbb{R}^3$
+
+* A Numerical Example (2)
+
+#+begin_src python
+# incomplete market numerical example
+
+# probability measure
+p = 1 / 3
+P = np.array((p, p, p))
+
+# payoff vectors
+B1 = np.array((11, 11, 11))
+S1 = np.array((20, 10, 5))
+C1 = np.array((5, 0, 0))
+
+# first relative price
+zeta_1 = (np.dot(S1 / (B1 + S1 + C1), P) / np.dot(B1 / (B1 + S1 + C1), P))
+zeta_1
+
+# second relative price
+zeta_2 = (np.dot(C1 / (B1 + S1 + C1), P) / np.dot(B1 / (B1 + S1 + C1), P))
+zeta_2
+
+# the initial wealth
+w = 15
+
+# resulting price for the riskless bond
+B0 = w / (1 + zeta_1 + zeta_2)
+B0
+
+# equilibrium price for the risky stock
+S0 = zeta_1 * B0
+S0
+
+# equilibrium price for the contingent claim
+C0 = zeta_2 * B0
+C0
+
+# budget constraint is binding
+B0 + S0 + C0
+
+# riskless interest rate
+i = B1.mean() / B0 - 1
+i
+
+# equilibrium expected rate of return for the risky stock
+muS = np.dot(S1, P) / S0 - 1
+muS
+
+# equilibrium expected rate of return for the contingent claim
+muC = np.dot(C1, P) / C0 - 1
+muC
+#+end_src
+
+That the introduction of the contingent claim - as a 3rd traded financial asset - is market completing can be seen by the fact that there is now a unique martingale measure:
+
+#+begin_src python
+# unique martingale measure from additional contingent claim
+
+# the new market payoff matrix including the contingent claim
+M = np.array((B1, S1, C1)).T
+
+# price vector
+M0 = np.array((B0, S0, C0))
+
+# solves for the martingale measure Q
+Q = np.linalg.solve(M.T / (1 + i), M0)
+
+# solution whose components add up to 1
+Q
+sum(Q)
+
+# final check whether all discounted price processes are martingales
+np.allclose(np.dot(M.T, Q), M0 * (1 + i))
+#+end_src
+
+* Conclusions
+
+The techniques and methods introduced carry over to /general static model economies/, that is, those having many more - even countably infinite - different future states (instead of 2 or 3 only).
+
+With some additional formalism, they even carry over to /dynamic economies/ with many - potentially countably infinite - relevant points in time (instead of 2)

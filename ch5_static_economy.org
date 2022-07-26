@@ -1,1 +1,212 @@
 #+TITLE: Chapter 5: Static Economy
+
+This chapter introduces more formalism to model a general static economy. Such an economy is characterized by an arbitrarily large, but still finite, state space.
+This chapter introduces one major generalization -- namely with regard to state space. The next chapter then generalized the model economy further with regard to
+the number of relevant points in time.
+
+
+#+DOWNLOADED: screenshot @ 2022-07-26 07:56:41
+[[file:2022-07-26_07-56-41_screenshot.png]]
+
+* Uncertainty
+
+An *algebra* $\mathcal{F}$ in $\Omega$ is a family of sets for which the following statements hold true:
+
+1. $\Omega \in \mathcal{F}$
+2. $\mathbb{E} \in \mathcal{F} \implies \mathbb{E}^c \in \mathcal{F}$
+3. $\mathbb{E}_1, \mathbb{E}_2, ..., \mathbb{E}_I \in \mathcal{F} \implies \cup_{i = 1}^I \mathbb{E}_i \in \mathcal{F}$
+
+An algebra is a model for /observable events/ in an economy. In this context, a single state of the economy $\omega \in \Omega$ can be interpreted as an /atomic event/.
+
+A *probability measure* $P:\mathcal{F} \to [0, 1]$ is characterized by the following characteristics:
+
+1. $\forall \mathbb{E} \in \mathcal{F}: P(\mathbb{E}) \geq 0$
+2. $P(\cup_{i = 1}^I \mathbb{E}_i) = \Sigma_{i=1}^I \mathbb{E}_i$ for disjoint sets $\mathbb{E}_i \in \mathcal{F}$
+3. $P(\Omega) = 1$
+
+Together, the three elements $\{\Omega, \mathcal{F}, P\}$ form a *probability space*. A probability space is the formal representation of /uncertainty/ in the model economy.
+
+* Random Variables
+
+Given a probability space, a /random variable/ is a $\mathcal{F}$-measurable function:
+
+$S: \Omega \to \mathbb{R}_{\geq 0}$
+$\omega \mapsto S(\omega)$
+
+$\mathcal{F}$-measurability implies that for each $\mathbb{E} \in \{[a, b] : a, b \in \mathbb{R}, a < b\}$, one has:
+
+$S^{-1}(\mathbb{E}) \equiv \{\omega \in \Omega : S(\omega) \in \mathbb{E}\} \in \mathcal{F}$
+
+If $\mathcal{F} \equiv \mathcal{P}(\Omega)$, the *expectation* of a random variable is defined by:
+
+$E^P(S) = \Sigma\limits_{\omega \in \Omega} P(\omega) \cdot S(\omega)$
+
+Otherwise, it holds:
+
+$E^P(S) = \Sigma\limits_{\mathcal{E} \in \mathcal{F}} P(\mathbb{E}) \cdot S(\mathbb{E})$
+
+* Numerical Examples
+
+#+begin_src python
+import numpy as np
+from numpy.random import default_rng
+np.set_printoptions(precision=5, suppress=True)
+
+# fix a seed for reproducibility
+rng = default_rng(100)
+
+# fix the number of states in the state space
+I = 1000
+
+# draw I normally distributed random numbers with mean loc and std dev scale
+S = rng.normal(loc=100, scale=20, size=I)
+
+S[:14]
+
+# calculate the expectation assuming equal probability for every state
+S.mean()
+
+# alternatively with non-uniform weighting
+P = rng.random(I)
+
+# normalize to sum up to 1
+P /= P.sum()
+
+# expectation as the dot product of the probability vector
+# and the vector representing the random variable
+np.dot(P, S)
+#+end_src
+
+* Financial Assets
+
+A traded financial asset is represented by a price process $S = (S_0, S_1)$ where the price today is fixed $S_0 \in \mathbb{R}_{\geq 0}$ and the price in one year $S_1: \Omega \to \mathbb{R}_{\geq 0}$ is a random variable that is $\mathcal{F}$-measurable.
+
+Formally, the future price vector of a traded financial asset is a vector with $I$ elements:
+
+$S_1 = \begin{pmatrix} S_1(\omega_1) \\ S_1(\omega_2) \\ ... \\ S_1(\omega_I) \end{pmatrix}$
+
+If there are multiple financial assets traded, they are represented by multiple processes:
+
+$\mathcal{M} = \begin{pmatrix} S_1^1(\omega_1) & ... & S_1^K(\omega_1) \\ S_1(\omega_2) & ... & S_K(\omega_2) \\ ... & ... & ... \\ S_1(\omega_I) & ... & S_K(\omega_I) \end{pmatrix}$
+
+Denote the set of traded financial assets by $\mathcal{J} \equiv (S^1, ..., S^K)$. The *static model economy* can be then summarized by $\mathcal{E} = (\{\Omega, \mathcal{F}, P\}, \mathcal{J})$
+where it is usually assumed that $\mathcal{F} \equiv \mathcal{P}(\Omega)$
+
+#+begin_src python
+# assumed market payoff matrix where the columns are future uncertain price vectors
+M = np.array(((11, 25, 0, 0, 25),
+              (11, 20, 30, 15, 25),
+              (11, 10, 0, 20, 10),
+              (11, 5, 30, 15, 0),
+              (11, 0, 0, 0, 0)))
+
+# current price vector for each asset
+M0 = np.array(5 * [10.])
+M0
+
+# expected average future price for every traded asset
+M.mean(axis=0)
+
+# expected (or average) rates of return
+mu = M.mean(axis=0) / M0 - 1
+mu
+
+# rates of return matrix printed
+(M / M0 - 1)
+
+# std dev of the rates of return, or volatility calculated
+sigma = (M / M0 - 1).std(axis=0)
+sigma
+#+end_src
+
+* Contingent Claims
+
+Given a model economy $\mathcal{E}$, a contingent claim is characterized by a price process $C = (C_0, C_1)$ where $C_1$ is a $\mathcal{F}$-measurable random variable.
+
+We can think of European call and put options as canonical examples of contingent claims.
+
+If a contingent claim can be /replicated/ by a portfolio $\phi \in \mathbb{R}^K$ of the traded financial assets $\mathcal{J}$
+
+$\mathcal{M} \cdot \phi = C_1$
+
+then the arbitrage price of the contingent claim is
+
+$\mathcal{M}_0 \cdot \phi = C_0$
+
+where $\mathcal{M}_0 = (S_0^1, S_0^2, ..., S_0^K)^T \in \mathbb{R}^I_{> 0}$ is the current price vector of the traded financial assets.
+
+#+begin_src python
+# strike price of the European call option
+K = 15
+# payoff vector of the relevant financial asset
+M[:, 1]
+
+
+# call option on the second traded financial asset with future payoff (25, 20, 10, 5, 0)
+C1 = np.maximum(M[:, 1] - K, 0)
+C1
+
+# solve the replication problem with the given market payoff matrix
+phi = np.linalg.solve(M, C1)
+phi
+
+# check whether the replication portfolio replicates the payoff of the European option
+np.allclose(C1, np.dot(M, phi))
+
+# arbitrage price follows in combination with the current price vector of the traded financial assets
+C0 = np.dot(M0, phi)
+C0
+#+end_src
+
+* Market Completeness
+
+The model economy $\mathcal{E}$ is complete if:
+
+$\mathrm{span}(\mathcal{M}) = \mathbb{R}^I$
+
+which is the case when
+
+$\mathrm{rank}(\mathcal{M}) \geq I$
+
+Similarly, the model economy is /incomplete/ if
+
+$\mathrm{rank}(\mathcal{M}) < I$
+
+#+begin_src python
+# create identity matrix
+# can be interpreted as 5 traded Arrow-Debreu securities
+M = np.eye(5)
+M
+
+# calc the rank of the matrix
+np.linalg.linalg.matrix_rank(M)
+
+# contingent claim payoff to be replicated
+C1 = np.arange(10, 0, -2)
+C1
+
+# solve the replication problem
+# trivial with the identity matrix
+np.linalg.solve(M, C1)
+
+
+# fix seed
+rng = default_rng(100)
+
+# create a randomized payoff matrix
+M = rng.integers(1, 10, (5, 5))
+M
+
+# matrix has full rank
+np.linalg.matrix_rank(M)
+np.linalg.matrix_rank(M.T)
+
+# nontrivial soln to the replication problem with the randomized basis for R^5
+phi = np.linalg.solve(M, C1)
+phi
+
+# Checks the solution for replication
+np.dot(M, phi)
+#+end_src
+
+* Fundamental Theorems of Asset Pricing

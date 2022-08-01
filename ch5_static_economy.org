@@ -210,3 +210,268 @@ np.dot(M, phi)
 #+end_src
 
 * Fundamental Theorems of Asset Pricing
+
+The First Fundamental Theorem of Asset Pricing
+
+The following statements are equivalent:
+
+1. A Martingale measure $Q$ exists
+2. The economy is arbitrage-free, it holds $\mathbb{O} = \varnothing$
+
+where $\mathbb{O}$ is the set of all arbitrage opportunities $\mathbb{O} \equiv \{\phi \in \mathbb{R}^K : S_0 \cdot \phi = 0, E^P(\mathcal{M} \cdot \phi) > 0\}$
+and a martingale measure $Q$ for the model economy makes the discounted price processes martingales and
+therefore satisfies the following condition:
+
+$\frac{1}{1 + r} \cdot E^Q(\mathcal{M}) = S_0$ where $r$ is the risk-less short rate for lending and borrowing in the economy.
+
+The derivation of a martingale measure is formally the same as the solution of a replication problem for a contingent
+claim $C = (C_0, C_1)$ which reads $\mathcal{M} \cdot \phi = C_1$ and where the replication portfolio $\phi$ needs to be determined.
+
+The problem of finding a martingale measure can be modeled as a constrained minimization problem.
+
+#+begin_src python
+import numpy as np
+import scipy.optimize as sco
+
+M = np.array(((11, 25, 0, 0, 25),
+              (11, 20, 30, 15, 25),
+              (11, 10, 0, 20, 10),
+              (11, 5, 30, 15, 0),
+              (11, 0, 0, 0, 0)))
+
+np.linalg.matrix_rank(M)
+
+# defines the price vector for the traded financial assets
+M0 = np.ones(5) * 10
+M0
+
+# fixes the constant short rate
+r = 0.1
+
+# declares the objective function to be minimized.
+def E(Q):
+    return np.sum((np.dot(M.T, Q) - M0 * (1 + r)) ** 2)
+
+E(np.array(5 * [0.2]))
+
+# the constraint that single probabilities must sum to 1
+cons = ({'type': 'eq',
+         'fun': lambda Q: Q.sum() - 1})
+
+# defines the bounds for each probability
+bnds = (5 * [(0, 1)])
+bnds
+
+# minimize E subject to constraints
+res = sco.minimize(E, 5 * [1],
+                   method='SLSQP',
+                   constraints=cons,
+                   bounds=bnds)
+
+# results vector is a martingale measure
+Q = res['x']
+Q
+
+# under the martingale measure, the discounted price processes are martingales
+np.dot(M.T, Q) / (1 + r)
+
+np.allclose(M0, np.dot(M.T, Q) / (1 + r))
+#+end_src
+
+The second Fundamental Theorem of Asset Pricing also holds true in the general static model economy $\mathcal{E}$.
+
+*Second Fundamental Theorem of Asset Pricing*
+The following statements are equivalent:
+1. The martingale measure $Q$ is unique
+2. The economy is complete, it holds $\mathbb{A} = \mathbb{R}^I_{+}$
+
+* Black-Scholes-Merton Option Pricing
+
+The BSM model for option pricing is based on a continuous model economy generally represented by stochastic differential equations with suitable boundary conditions. The SDE used to describe the evolution of the single risky asset is the one for a geometric Brownian motion. In addition to the risky asset, another riskless asset is traded in the model economy and it pays a continuous, riskless short rate.
+
+In the static case with two relevant points in time only, say $t = 0$ and $t = T > 0$, the future, uncertain value of the risky asset $S_T$ is given by
+
+$S_T = S_0 \cdot \exp^{(r - \frac{\sigma^2}{2})T + \sigma \sqrt{T}z}$
+
+where:
+
+- $S_0 \in \mathbb{R}_{> 0}$ is the price of the risky asset today
+- $r \in \mathbb{R}_{\geq 0}$ is the constant riskless short rate
+- $\sigma \in \mathbb{R}_{> 0}$ is a constant volatility factor
+- $z$ is a standard normally distributed random variable
+
+We can draw random numbers from $z$, i.e. $z_i$ $i = 1, 2, ..., I$. Such a procedure is usually called a Monte Carlo simulation.
+
+Assume a European call option written on the stock as a contingent claim. The payoff is
+
+$C_T \equiv (S_T - K, 0)$ with strike price $K \in \mathbb{R}_{\geq 0}$. The price (here, the Monte Carlo estimator) for the call option is given by the expected (average) discounted payoff:
+
+$C_0 = e^{-rT} \frac{1}{I} \Sigma\limits_{i = 1}^I \max{(S_T(z_i) - K, 0)}$
+
+#+begin_src python
+# Monte Carlo simulator of the Black-Scholes-Merton pricing of a European call option
+import math
+
+S0 = 100      # initial stock price level
+r = 0.05      # constant short rate
+sigma = 0.2   # volatility factor
+T = 1.0       # time horizon in year fractions
+I = 10000     # number of states and also number of simulations
+
+rng = np.random.default_rng(100)  # fix the seed
+
+# the core of the code. Implements the MC simulation with np in a vectorized fashion
+ST = S0 * np.exp((r - sigma ** 2 / 2) * T + sigma * math.sqrt(T) * rng.standard_normal(I))
+ST[:8].round(1)
+
+# mean value obtained from the simulated set of stock prices
+ST.mean()
+
+# theoretically to be expected value of the stock price
+S0 * math.exp(r * T)
+
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('tkAgg')
+
+# plot simulation results as a histogram and give first SD
+plt.figure()
+plt.hist(ST, bins=35, label='frequency')
+plt.axvline(ST.mean(), color='r', label='mean')
+plt.axvline(ST.mean() + ST.std(), color='y', label='sd up')
+plt.axvline(ST.mean() - ST.std(), color='y', label='sd down')
+plt.legend(loc=0)
+plt.show()
+
+# Having the simulated stock price values available makes European option pricing only a matter of 2 more vectorized operations
+K = 105  # strike price
+CT = np.maximum(ST - K, 0)  # 2
+
+CT[:8].round(1)
+
+# the monte carlo estimator of the option price
+C0 = math.exp(-r * T) * CT.mean()
+C0
+#+end_src
+
+* Completeness of Black-Scholes-Merton
+
+The previous section derives an MC estimator for the (arbitrage) price of a European call option despite the fact that there are many more states of the economy, $i >> 2$, than financial assets traded, $K = 2$.
+
+/General Incompleteness/
+
+In a wider sense, the economy is incomplete because not every contingent claim can be replicated by a portfolio of the traded assets and because there is not a unique martingale measure.
+
+/Specific Incompleteness/
+
+In a narrow sense, the model is complete because every contingent claim that can be represented as a function of the price vector of the stock $C_1 = f(S_1^2)$ is replicable by positions in the bond and the stock.
+
+When using MC simulation to derive an estimator for the arbitrage price in the previous section, the fact is used that the model economy is complete in the previous specific, narrow sense.
+
+We are missing the replicatoin portfolio and the resulting arbitrage price calculation to verify that the MC simulation approach is justified.
+
+#+begin_src python
+# justification of MC estimation
+B0 = 100  # the fixed price for a bond
+M0 = np.array((B0, S0))  # price vector today for 2 traded financial assets
+
+BT = B0 * np.ones(len(ST)) * math.exp(r * T)  # future price vector of the bond given the initial price and short rate
+BT[:4]
+
+# resulting market payoff matrix
+M = np.array((BT, ST)).T
+M
+
+# solve the replication problem with a least-squares representation
+phi = np.linalg.lstsq(M, CT, rcond=None)[0]
+phi
+
+# average replication error
+np.mean((np.dot(M, phi) - CT))
+
+# calculate the arbitrage price given the (numerically) optimal replication portfolio
+np.dot(M0, phi)
+#+end_src
+
+* Merton Jump-Diffusion Option Pricing
+
+This section introduces the Black-Scholes-Merton model with a jump component on the stock price.
+The jump component renders the model economy $\mathcal{M}$ incomplete in general.
+
+The /Merton jump-diffusion economy/ $\mathcal{E}^{M76}$ is the same as the Black-Scholes-Merton economy apart from the future
+price of the stock at time T, which can be simulated in this economy according to:
+
+$S_T(z_i) = S_0 \cdot (\exp{((r - r_j - \frac{\sigma^2}{2}) T + \sigma \sqrt{T} z_i^I)} + \exp{(\mu + \delta z_i^2 - 1) y_i})$
+
+$i = 1, 2, ..., I$
+
+with $z_i^1, z_i^2 \sim \mathcal{N}$, $y_i \sim \mathrm{Poisson}(\lambda)$
+
+The jumps are log-normally distributed with an expected value of $\mu$ and std.dev of $\delta$.
+
+The expected jump size is:
+$r_j = \lambda \cdot (e^{\mu + \frac{\delta^2}{2}} - 1)$
+
+#+begin_src python
+# merton jump diffusion model
+M0 = np.array((100, 100))  # fix initial price vector of the 2 traded financial assets (bond and stock)
+r = 0.05
+sigma = 0.2
+lmbda = 0.3
+mu = -0.3
+delta = 0.1
+rj = lmbda * (math.exp(mu + delta ** 2 / 2) - 1)
+T = 1.0
+I = 10000
+
+BT = M0[0] * np.ones(I) * math.exp(r * T)
+
+# first set of std normal numbers
+z = rng.standard_normal((2, I))
+
+# second set of std normally distributed numbers
+z -= z.mean()
+z /= z.std()
+
+# set of Poisson R.V.s with intensity lambda
+y = rng.poisson(lmbda, I)
+
+# the simulation of the stock price values at T given the 3 sets of random numbers
+ST = np.maximum(S0 * (np.exp((r - rj - sigma ** 2 / 2) * T +
+                             sigma * math.sqrt(T) * z[0]) +
+                      (np.exp(mu + delta * z[1]) - 1) * y),
+                0)
+
+# discounted mean value of the simulated stock price
+ST.mean() * math.exp(-r * T)
+
+# Frequency distribution of the simulated values for the stock price in Merton Jump Diffusion Model
+plt.figure()
+plt.hist(ST, bins=35, label='frequency')
+plt.axvline(ST.mean(), color='r', label='mean')
+plt.axvline(ST.mean() + ST.std(), color='y', label='sd up')
+plt.axvline(ST.mean() - ST.std(), color='y', label='sd down')
+plt.legend(loc=0)
+plt.show()
+
+# estimate the pricing of the European call option through calculation of the MC estimator
+# and the approximate replication approach
+K = 105
+CT = np.maximum(ST - K, 0)
+
+# MC estimator for the European call option price
+C0 = math.exp(-r * T) * np.mean(CT)
+C0
+
+M = np.array((BT, ST)).T
+
+# approximatie replication portfolio
+phi = np.linalg.lstsq(M, CT, rcond=-1)[0]
+phi
+
+# replication error of the portfolio
+np.mean(np.dot(M, phi) - CT)
+
+# arbitrage price according to the optimal portfolio
+np.dot(M0, phi)
+#+end_src

@@ -1,0 +1,370 @@
+#+TITLE: Chapter 6: Dynamic Economy
+
+This chapter presents two of the most important dynamic model
+economies based on discrete time dynamics:
+
+The *Cox-Ross-Rubinstein binomial option pricing model* and the
+*Black-Scholes-Merton option pricing model* in a discrete Monte Carlo
+simulation version.  In this context, discrete time means that the set
+of relevant dates is extended from just 2 to a larger, but still
+finite number, say to 5 or 50.
+
+Topics covered in this chapter are:
+- stochastic processes
+- option pricing in dynamically complete markets
+- binomial option pricing
+- Black-Scholes-Merton dynamic simulation
+- early exercise & American option pricing
+- Least-Squares Monte Carlo (LSM) option pricing
+
+While chapter 5 generalizes the /state space/, this chapter sets out to
+generalize the /discrete set of relevant points in time/ at which new
+information is revealed and economic action takes place.
+
+* Binomial Option Pricing
+
+While the BSM model relies on continuous time finance and stochastic
+calculus, the binomial option pricing model is, in a sense, the
+discrete version of the BSM model that can be fully understood with
+elementary mathematics only.
+
+In the Cox-Ross-Rubinstein model, there are 2 traded financial assets:
+A (risky) stock and a (riskless) bond. The model economy is considered
+over a finite set of dates $\mathcal{F} \equiv \{t_0 = 0, t_1, t_2, ..., t_M = T\}$,
+with $M + 1, M > 1$ elements.
+
+Assume an evenly spaced time grid with $M$ time intervals of length $\Delta T = \frac{T}{M}$ each.
+The finite set of dates can then be written as $\mathcal{F} \equiv \{t_0 = 0, t_1 = \Delta t, t_2 = 2 \cdot \Delta t, ..., T\}$.
+In addition, define:
+
+$\mu \equiv e^{\sigma \sqrt{\Delta t}}$
+
+$d \equiv e^{- \sigma \sqrt{\Delta t}} = \mu^{-1}$
+
+One consequence of this definition is the property $\mu \cdot d = 1$ which will prove convenient
+in that it creates a so-called /recombining/ binomial tree.
+
+$\sigma \in \mathbb{R}_{> 0}$ represents the constant /volatility factor/.
+
+The martingale probability for an upward movement:
+
+$q \in \mathbb{R}_{> 0}$
+
+$0 < q < 1$
+
+$q = \frac{e^{r \Delta t} - d}{u - d}$
+
+This shows that the martingale measure is fixed at every node and consequently for the whole tree.
+
+#+begin_src python
+import math
+import numpy as np
+
+
+S0 = 36.                                 # initial stock price value
+K = 40.                                  # strike price for the option
+r = 0.06                                 # risk-less short rate
+T = 1.0                                  # time horizon and option maturity
+sigma = 0.2                              # constant volatility factor
+m = 4                                    # number of time intervals
+dt = T / m                               # resulting length of each time interval
+df = math.exp(-r * dt)                   # discount factor for a fixed time interval
+up = math.exp(sigma * math.sqrt(dt))     # upward and downward factors
+down = 1 / up
+
+# martingale probability for an upward movement
+q = (1 / df - down) / (up - down)
+q
+#+end_src
+
+** Simulation and Valuation Based on Loops
+
+This is a simulation of the stock price process and the valuation of options
+
+#+begin_src python
+# initialize ndarray
+S = np.zeros((m + 1, m + 1))
+S
+
+# set initial stock price value in upper LH corner
+S[0, 0] = S0
+S
+
+# set counter z to 1
+z = 1
+for t in range(1, m + 1):  # iterate from 1 to m + 1, over all time steps after 0
+    for i in range(0, z):  # iterate over relevant nodes for the given time step
+        S[i, t] = S[i, t - 1] * up             # calc up and down values and set them
+        S[i + 1, t] = S[i, t - 1] * down
+    z += 1  # increase counter by 1 to include more relevant nodes in the next step
+
+# resulting binomial tree
+S
+#+end_src
+
+European option pricing
+
+#+begin_src python
+# ndarray object for inner values
+h = np.zeros_like(S)
+
+z = 1
+
+for t in range(0, m + 1):
+    for i in range(0, z):
+        h[i, t] = max(K - S[i, t], 0)  # calculates inner values for relevant nodes
+    z += 1
+
+h
+
+V = np.zeros_like(S)
+V[:, -1] = h[:, -1]
+V
+
+# European option pricing
+z = 0
+for t in range(m - 1, -1, -1):
+    for i in range(0, m - z):
+        V[i, t] = df * (q * V[i, t + 1] +
+                        (1 - q) * V[i + 1, t + 1])  # node-wise valuation by applying risk-neutral pricing
+    z += 1
+
+# resulting prevent value binomial tree
+V
+
+# present value today of the European put option
+V[0, 0]
+#+end_src
+
+*American Option Pricing*
+
+An /American option/ can be exercised at any time on and before the maturity date.
+The adjustment to be made to the backward valuation algo is simple: check whether
+the inner value of the American option is at any given node higher than the continuation
+value (the present value of not exercising the option). If so, exercise the option.
+
+$V_t = \max [h_t, e^{- r \Delta t}E^Q(V_{t + \Delta t})]$
+
+where $h_t$ is the inner value at time $t$ and $e^{- r \Delta t}E^Q(V_{t + \Delta t})$ is the continuation value.
+
+The change in code is only 1 line
+
+#+begin_src python
+# American Option Pricing
+# ndarray object for inner values
+h = np.zeros_like(S)
+
+z = 1
+
+for t in range(0, m + 1):
+    for i in range(0, z):
+        h[i, t] = max(K - S[i, t], 0)  # calculates inner values for relevant nodes
+    z += 1
+
+h
+
+V = np.zeros_like(S)
+V[:, -1] = h[:, -1]
+V
+
+# American option pricing
+z = 0
+for t in range(m - 1, -1, -1):
+    for i in range(0, m - z):
+        V[i, t] = df * (q * V[i, t + 1] +
+                        (1 - q) * V[i + 1, t + 1])  # node-wise valuation by applying risk-neutral pricing
+        # check for early exercise decision and puts the inner value as the American option value when
+        # it is higher than the continuation value
+        V[i, t] = max(h[i, t], V[i, t])
+    z += 1
+
+# resulting prevent value binomial tree
+V
+
+# present value today of the European put option
+V[0, 0]
+#+end_src
+
+* Simulation and Valuation Based on Vectorized Code
+
+Vectorizing code is more concise and generally faster.
+
+#+begin_src python
+# create num of upward movements from 0 to m
+u = np.arange(m + 1)
+
+u = np.resize(u, (m + 1, m + 1))
+u
+
+# get number of downward movements in each column
+d = u.T
+d
+
+# combine u and d objs to arrive at the net number of upward and downward movements
+# for example, +2 means 2 more upward movements than downward movements
+up_down_mat = (u - 2 * d)
+
+# simulation of the stock prices
+# only nums on and above the diagonal are relevant
+S = S0 * np.exp(sigma * math.sqrt(dt) * up_down_mat)
+S
+
+# Valuation of European and American put options
+
+# calculate inner value of the put option
+h = np.maximum(K - S, 0)
+h  # only diag + are important
+
+# European put option
+V = h.copy()
+
+for t in range(m - 1, -1, -1):
+    V[0:-1, t] = df * (q * V[:-1, t + 1] +
+                       (1 - q) * V[1:, t + 1])  # european put option partly vectorized
+
+# present value for the European put option
+V[0, 0]
+
+# American put option
+V = h.copy()
+
+for t in range(m - 1, -1, -1):
+    V[0:-1, t] = df * (q * V[:-1, t + 1] +
+                       (1 - q) * V[1:, t + 1])  # american put option partly vectorized
+    V[:, t] = np.maximum(h[:, t], V[:, t])
+
+# present value for the American put option
+V[0, 0]
+#+end_src
+
+* Black-Scholes-Merton Option Pricing
+
+This section introduces a /dynamic simulation version/ of the BSM option pricing model.
+
+The stochastic differential equation for the BSM economy is given by:
+
+$dS_t = r S_t dt + \sigma S_t dZ_t$
+
+where
+- $S_t \in \mathbb{R}_{> 0}$ is the stock price at time $t$
+- $r \in \mathbb{R}_{\geq 0}$ is the constant short rate
+- $\sigma \in \mathbb{R}_{> 0}$ is the constant volatility factor
+- $Z_t$ is an arithmetic Brownian motion
+
+** Monte Carlo Simulation of Stock Price Paths
+
+Assume a finite set of relevant points in time $\mathcal{F} \equiv \{t_0 = 0, t_1, t_2, ..., t_M = T\}$ with $M + 1, M > 1$
+and a fixed interval length of $\Delta t$. The stock price $S_t$ given the previous stock price $S_{t - \Delta t}$ can then be
+simulated according to the difference equation:
+
+$S_t = S_{t - \Delta t} \cdot \exp ((r - \frac{\sigma^2}{2}) \Delta t + \sigma \sqrt{\Delta t}z)$
+
+Where $z \sim \mathcal{N}$
+
+This scheme is called /Euler discretization/.
+
+#+begin_src python
+# MC simulation of stock processes
+S0 = 36.     # initial stock price
+K = 40.      # strike price
+r = 0.06     # risk-free rate
+T = 1.0      # Time length
+sigma = 0.2  # constant volatility
+
+M = 100   # paths
+I = 5000  # time steps
+
+dt = T / M  # length of time interval
+dt
+
+df = math.exp(-r * dt)  # discount factor for single time interval
+df
+
+rng = default_rng(100)
+
+rn = rng.standard_normal((M + 1, I))
+
+S = np.zeros_like(rn)
+S[0] = S0
+S
+
+# single stock price paths simulated based on the initial prices
+# the random number matrix and the different equation for the GBM
+for t in range(1, M + 1):
+    S[t] = S[t - 1] * np.exp((r - sigma ** 2 / 2) * dt +
+                             sigma * math.sqrt(dt) * rn[t])
+
+S
+
+# plot the first 10 simulated paths
+plt.figure()
+plt.plot(S[:, :10])
+plt.show()
+
+# frequency distribution of simulated end-of-period stock prices for BSM
+ST = S[-1]
+
+plt.figure()
+plt.hist(ST, bins=35, color='b', label='frequency')
+plt.axvline(ST.mean(), color='r', label='mean')
+plt.axvline(ST.mean() + ST.std(), ls='--', color='y', label='sd up')
+plt.axvline(ST.mean() - ST.std(), ls='--', color='y', label='sd down')
+plt.legend(loc=0)
+plt.show()
+
+S0 * math.exp(r * T)  # expected value for S_T
+ST.mean()             # average over all simulated values
+#+end_src
+
+** Monte Carlo Valuation of the European Put Option
+
+The MC estimator for the price of the European put option is
+
+$P_0 = e^{-rT}\frac{1}{I}\Sigma\limits_{i = 1}^I \max(K - S_T(i), 0)$
+
+where $I$ is the number of simulated price paths.
+
+#+begin_src python
+h = np.maximum(K - ST, 0)
+h
+
+# frequency distribution of simulated inner values at maturity for the
+# European put option
+plt.figure()
+plt.hist(h, color='b', bins=35)
+plt.show()
+
+# average over all inner values discounted to the present
+math.exp(-r * T) * h.mean()
+#+end_src
+
+** Monte Carlo Valuation of the American Put Option
+
+The most popular algorithm for valuing American put options with MC
+simulation is the /Least-Squares Monte Carlo/ algorithm from Longstaff
+and Schwartz because it is relatively simple and efficient to apply
+from a numerical and computational perspective.
+
+#+begin_src python
+# calc inner values over the complete stock price path
+h = np.maximum(K - S, 0)
+h
+
+# LSM algo
+# sets the simulated American option price values to the inner values at maturity
+V = h[-1]
+
+# backward induction from T-Delta t -> \Delta t
+for t in range(M - 1, 0, -1):
+    # continuation values are estimated based on OLS of the
+    # present simulated option values against the stock price levels
+    reg = np.polyfit(S[t], df * V, deg=5)
+    C = np.polyval(reg, S[t])
+    # if the inner value  is higher than the approximated continuation value
+    # take exercise
+    V = np.where(h[t] > C, h[t], df * V)
+
+# present value calculation
+# avg over the American option price vector at t = Delta t
+df * V.mean()
+#+end_src
